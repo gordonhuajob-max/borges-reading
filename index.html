@@ -107,6 +107,14 @@ h2.sec{font-size:18px;margin:22px 0 10px}
 .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .prog{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px;max-width:360px}.prog>div{height:100%;background:var(--accent);transition:width .15s}
+/*ADDON-CSS*/
+.mstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.mstats .card{text-align:center;padding:12px 6px}.mstats b{display:block;font-size:26px;color:var(--accent)}.mstats span{font-size:13px;color:var(--muted)}
+.mchart{display:flex;align-items:flex-end;gap:2px;height:150px;padding-top:8px}.mbar{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;position:relative;min-width:0}
+.mcol{flex:1;width:100%;display:flex;align-items:flex-end;background:color-mix(in srgb,var(--line) 40%,transparent);border-radius:3px}.mcol div{width:100%;background:var(--accent);border-radius:3px}
+.mbar.today .mcol{outline:1px solid var(--accent)}.mlab{font-size:10px;color:var(--muted);height:14px}.mdot{position:absolute;top:-4px;font-size:10px;background:var(--accent2);color:var(--accent);border-radius:8px;padding:0 4px}
+.mtab{width:100%;border-collapse:collapse;font-size:14px}.mtab th,.mtab td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}.mtab th{font-weight:600;color:var(--muted);font-size:13px}
+@media (max-width:520px){.mstats{grid-template-columns:repeat(2,1fr)}.mtab{font-size:13px}}
+/*/ADDON-CSS*/
 </style>
 </head>
 <body>
@@ -114,10 +122,12 @@ h2.sec{font-size:18px;margin:22px 0 10px}
   <div class="brand" onclick="go('#/')">📚 Borges<span class="bt"> 读书笔记</span><span class="muted small"> · 六本书</span></div>
   <nav id="nav">
     <button data-r="shelf" onclick="go('#/')">书架</button>
+    <button data-r="month" onclick="go('#/month')">月度</button>
     <button data-r="ask" onclick="go('#/ask')">提问</button>
     <button data-r="search" onclick="go('#/search')">搜索</button>
     <button data-r="marks" onclick="go('#/marks')">我的标记</button>
     <button data-r="data" onclick="go('#/data')">设置</button>
+    <button data-r="account" onclick="go('#/account')">登录</button>
   </nav>
 </header>
 <main id="app"></main>
@@ -259,6 +269,8 @@ function route(){
  if(parts[0]==='search'){on('search');return viewSearch(qs.get('q')||'')}
  if(parts[0]==='marks'){on('marks');return viewMarks(parts[1]||'')}
  if(parts[0]==='data'){on('data');return viewData()}
+ if(parts[0]==='month'){on('month');return viewMonth(parts[1]||'')}
+ if(parts[0]==='account'){on('account');return viewAccount()}
  on('shelf');viewShelf();
 }
 const app=document.getElementById('app');
@@ -271,7 +283,7 @@ function continueTarget(b){const bk=BYID[b];let ci=UI.last[b];
  if(ci===undefined||ci>=bk.chapters.length){ci=bk.chapters.findIndex((_,i)=>chget(b,i).s!==2);if(ci<0)ci=0}
  const c=chget(b,ci);return c.bmn!=null?`#/b/${b}/${ci}/n/${c.bmn}`:`#/b/${b}/${ci}/${UI.lastTab==='m'?'m':'n'}`}
 function viewShelf(){
- let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h1 style="margin:0;font-size:24px">我的书架</h1><div class="muted small">进度按“已读”章节计算 · 所有记录只保存在本机浏览器 · 公开版只含解读笔记</div></div>
+ let h=`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h1 style="margin:0;font-size:24px">我的书架</h1><div class="muted small">进度按“已读”章节计算 · 记录保存在本机，登录后自动同步 · 公开版只含解读笔记</div></div>
  <div class="row" style="flex:1;max-width:420px"><input id="shelfq" placeholder="有问题？直接问，例如：如何做一对一" onkeydown="if(event.key==='Enter'&&this.value.trim())go('#/ask?q='+encodeURIComponent(this.value.trim()))"></div></div><div class="shelf">`;
  BOOKS.forEach((bk,i)=>{const s=bookStats(bk.id);const lc=UI.last[bk.id];
   h+=`<div class="card book"><div class="cover" style="background:${HUES[i%5]}"></div><h3>${esc(bk.title)}</h3><div class="muted small">${esc(bk.author)}</div>
@@ -570,8 +582,8 @@ function viewData(){
  <div class="row"><button class="primary" onclick="exportData()">导出全部数据（JSON）</button><label class="row"><button onclick="document.getElementById('imp').click()">导入…</button><input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="importData(this.files[0])"></label></div>
  <div class="row small" style="margin-top:8px"><label><input type="radio" name="im" value="merge" checked style="width:auto"> 合并（保留现有，按记录合并）</label><label><input type="radio" name="im" value="replace" style="width:auto"> 覆盖（用备份完全替换）</label></div></div>
  <div class="card" style="margin-top:14px"><h3 style="margin-top:0">关于</h3><div class="small">包含六本书：${BOOKS.map(b=>'《'+esc(b.title)+'》').join('、')}。这是公开的「只含解读笔记」版本：每本书只有分章解读笔记（含少量短引文），不包含原书正文。阅读进度、高亮、笔记和问答只保存在你自己的浏览器里，不会上传；只有你点「发给 Borges」时，才会把那一条问题发到你设置的地址。</div>
- <div style="margin-top:10px"><button class="small danger" onclick="if(confirm('清空所有阅读进度、笔记、高亮和问答？此操作不可撤销（建议先导出）。')){CH={};HL=[];QA=[];saveAll();toast('已清空');viewData()}">清空我的全部数据</button></div></div></div>`}
-function exportData(){const data={app:'borges-reader',version:1,exported:new Date().toISOString(),ch:CH,hl:HL,qa:QA,ui:UI};
+ <div style="margin-top:10px"><button class="small danger" onclick="if(confirm('清空所有阅读进度、笔记、高亮和问答？此操作不可撤销（建议先导出）。')){CH={};HL=[];QA=[];saveAll();LOG={};POS={};save('log',LOG);save('pos',POS);toast('已清空');viewData()}">清空我的全部数据</button></div></div></div>`}
+function exportData(){const data={app:'borges-reader',version:1,exported:new Date().toISOString(),ch:CH,hl:HL,qa:QA,ui:UI,log:LOG,pos:POS};
  const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);
  const d=new Date();a.download=`Borges读书笔记-备份-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);toast('已导出')}
 function importData(file){if(!file)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(d.app!=='borges-reader')throw new Error('不是本应用的备份文件');
@@ -579,10 +591,278 @@ function importData(file){if(!file)return;const fr=new FileReader();fr.onload=()
  if(mode==='replace'){CH=d.ch||{};HL=d.hl||[];QA=d.qa||[];if(d.ui)UI=Object.assign(UI,d.ui)}
  else{for(const k in (d.ch||{})){const a=CH[k],b=d.ch[k];if(!a){CH[k]=b;continue}a.s=Math.max(a.s||0,b.s||0);if(a.bm==null)a.bm=b.bm;if(a.bmn==null)a.bmn=b.bmn;if(b.refl&&b.refl!==a.refl)a.refl=a.refl?(a.refl.includes(b.refl)?a.refl:a.refl+'\n\n'+b.refl):b.refl;const ids=new Set((a.notes||[]).map(x=>x.id));a.notes=(a.notes||[]).concat((b.notes||[]).filter(x=>!ids.has(x.id)))}
   const hid=new Set(HL.map(x=>x.id));HL=HL.concat((d.hl||[]).filter(x=>!hid.has(x.id)));const qid=new Set(QA.map(x=>x.id));QA=QA.concat((d.qa||[]).filter(x=>!qid.has(x.id)))}
- saveAll();applyTheme();toast('导入成功（'+(mode==='replace'?'覆盖':'合并')+'）');viewData()}catch(e){alert('导入失败：'+e.message)}};fr.readAsText(file)}
+ saveAll();importExtra(d,mode);applyTheme();toast('导入成功（'+(mode==='replace'?'覆盖':'合并')+'）');viewData()}catch(e){alert('导入失败：'+e.message)}};fr.readAsText(file)}
 
 document.addEventListener('click',e=>{const toc=document.getElementById('toc');if(toc&&toc.classList.contains('open')&&!toc.contains(e.target)&&!e.target.closest('.mobile-only'))toc.classList.remove('open')});
 window.addEventListener('storage',e=>{if(e.key&&e.key.startsWith(P)){CH=load('ch',{});HL=load('hl',[]);QA=load('qa',[]);}});
+/*ADDON-JS*/
+/* ===== Borges add-on: auto progress, reading log, 月度, account + sync (shared by site & full app) ===== */
+const SYNC_DEFAULT_API='https://borges-sync.gordonhua.workers.dev';
+const DEV=(()=>{let d=load('dev',null);if(!d){d=Math.random().toString(36).slice(2,8);save('dev',d)}return d})();
+let LOG=load('log',{}),POS=load('pos',{});
+let SY=load('sync',{});  /* {api,token,phone,role,rev,last,lastPhone} — local only, never exported */
+let META=load('meta',{t:{},p:{}});if(!META.t)META.t={};if(!META.p)META.p={};
+function dayKey(ts){const d=new Date(ts||Date.now());return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function syncApi(){return (SY.api||(SYNC_DEFAULT_API.indexOf('__')===0?'':SYNC_DEFAULT_API)).replace(/\/+$/,'')}
+
+/* ---- synced kinds: how to read / write each store item by item ---- */
+const KINDS={
+ ch:{get:()=>CH,set:v=>{CH=v},type:'obj',sk:'ch'},
+ hl:{get:()=>HL,set:v=>{HL=v},type:'arr',sk:'hl'},
+ qa:{get:()=>QA,set:v=>{QA=v},type:'arr',sk:'qa'},
+ log:{get:()=>LOG,set:v=>{LOG=v},type:'obj',sk:'log'},
+ pos:{get:()=>POS,set:v=>{POS=v},type:'obj',sk:'pos'},
+ ui:{get:()=>({last:{v:{last:UI.last||{},lastBook:UI.lastBook||null}}}),type:'ui',sk:'ui'}
+};
+const SK2KIND={ch:'ch',hl:'hl',qa:'qa',log:'log',pos:'pos',ui:'ui'};
+function entries(kind){const K=KINDS[kind],s=K.get();
+ if(K.type==='arr')return s.map(x=>[x.id,x]);
+ if(K.type==='ui')return [['last',s.last.v]];
+ return Object.keys(s).map(k=>[k,s[k]])}
+const SHADOW={};
+function snap(kind){const m=new Map();entries(kind).forEach(([k,v])=>m.set(k,JSON.stringify(v)));return m}
+function hintTs(kind,v){return (v&&(v.ut||v.ts||v.dt))||1}
+/* initialise: items that existed before sync was added get a timestamp so they can be uploaded */
+Object.keys(KINDS).forEach(kind=>{SHADOW[kind]=snap(kind);SHADOW[kind].forEach((js,k)=>{const id=kind+'\u0001'+k;if(!META.t[id])META.t[id]=hintTs(kind,JSON.parse(js))})});
+const _rawSave=save;
+function saveMeta(){_rawSave('meta',META)}
+saveMeta();
+function detect(kind){const now=Date.now(),old=SHADOW[kind],cur=snap(kind);let ch=false;
+ cur.forEach((js,k)=>{if(old.get(k)!==js){META.t[kind+'\u0001'+k]=now;ch=true}});
+ old.forEach((_,k)=>{if(!cur.has(k)){META.t[kind+'\u0001'+k]=-now;ch=true}}); /* negative ts = deleted (tombstone) */
+ SHADOW[kind]=cur;if(ch){saveMeta();schedulePush()}}
+save=function(k,v){_rawSave(k,v);if(SK2KIND[k])detect(SK2KIND[k])};
+
+/* ---- reading log ---- */
+function logDay(){const k=dayKey()+'|'+DEV;if(!LOG[k])LOG[k]={sec:{},open:[],done:[]};const e=LOG[k];e.sec=e.sec||{};e.open=e.open||[];e.done=e.done||[];return e}
+function logOpen(b,ci){const e=logDay(),k=b+'|'+ci;if(!e.open.includes(k)){e.open.push(k);save('log',LOG)}}
+function logDone(b,ci){const e=logDay(),k=b+'|'+ci;if(!e.done.includes(k)){e.done.push(k);save('log',LOG)}}
+let LAST_ACT=Date.now(),VISIT=null,LOG_DIRTY=0;
+['scroll','keydown','pointerdown','touchstart','wheel','mousemove'].forEach(ev=>window.addEventListener(ev,()=>{LAST_ACT=Date.now()},{passive:true}));
+setInterval(()=>{
+ if(document.visibilityState!=='visible'||!VISIT||Date.now()-LAST_ACT>120000)return;
+ if(!/^#\/b\/[^/]+\/\d+/.test(location.hash))return;
+ const e=logDay();e.sec[VISIT.b]=(e.sec[VISIT.b]||0)+5;VISIT.dwell+=5;LOG_DIRTY+=5;
+ if(LOG_DIRTY>=30){LOG_DIRTY=0;save('log',LOG)}
+ checkEnd();
+},5000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(LOG_DIRTY){LOG_DIRTY=0;save('log',LOG)}savePos(true);pushNow(true)}else{syncNow(false)}});
+
+/* ---- status: remember when a chapter was finished ---- */
+const _setStatus=setStatus;let AUTO_ST=false;
+setStatus=function(b,ci,s){const c=chs(b,ci);
+ if(s===2&&c.s!==2){c.dt=Date.now();logDone(b,ci)}
+ if(s!==2&&c.dt)delete c.dt;
+ if(!AUTO_ST&&VISIT&&VISIT.b===b&&VISIT.ci===ci&&s!==2)VISIT.noAuto=true;
+ _setStatus(b,ci,s);refreshBookDone(b)};
+function refreshBookDone(b){/* nothing to store: books finished are derived from chapter finish times */}
+const _setBookmark=setBookmark;
+setBookmark=function(b,ci,blk){chs(b,ci).bmt=Date.now();return _setBookmark.apply(this,arguments)};
+
+/* ---- auto position ---- */
+function hdrH(){const h=document.querySelector('header.top');return h?h.offsetHeight:0}
+function blocksOf(doc){return doc.children}
+function topBlock(doc){const kids=blocksOf(doc),H=hdrH()+4;let lo=0,hi=kids.length-1,ans=-1;
+ while(lo<=hi){const m=(lo+hi)>>1,r=kids[m].getBoundingClientRect();if(r.bottom>H){ans=m;hi=m-1}else lo=m+1}
+ if(ans<0)return null;const el=kids[ans];const b=el.getAttribute('data-b');if(b==null)return null;return{blk:+b,off:Math.round(H-el.getBoundingClientRect().top)}}
+let POS_T=0;
+function savePos(force){if(!VISIT||VISIT.restoring||CUR.b!==VISIT.b||CUR.ci!==VISIT.ci||CUR.tab!==VISIT.tab)return;const doc=document.getElementById('doc');if(!doc)return;
+ const now=Date.now();if(!force&&now-POS_T<1500){clearTimeout(savePos._h);savePos._h=setTimeout(()=>savePos(true),1600);return}POS_T=now;
+ const t=topBlock(doc);if(!t)return;const k=VISIT.b+'|'+VISIT.ci+'|'+VISIT.tab;const p=POS[k];
+ if(p&&p.blk===t.blk&&Math.abs((p.off||0)-t.off)<40)return;
+ POS[k]={blk:t.blk,off:Math.max(0,t.off),ts:now};save('pos',POS)}
+function lastPos(b,ci){let best=null;['n','o'].forEach(tab=>{const p=POS[b+'|'+ci+'|'+tab];if(p&&(!best||p.ts>best.ts))best=Object.assign({tab},p)});return best}
+function restorePos(b,ci,tab,tok){const p=POS[b+'|'+ci+'|'+tab];if(!p)return;const c=chget(b,ci);
+ if(c.bmt&&c.bmt>p.ts&&tab==='o')return; /* a newer manual 📍 wins */
+ VISIT.restoring=true;let n=0;
+ const tryIt=()=>{if(tok!==RTOK){return}const el=document.querySelector(`#doc > [data-b="${p.blk}"]`);
+  if(el){const y=el.getBoundingClientRect().top+window.scrollY-hdrH()-4+(p.off||0);window.scrollTo(0,Math.max(0,y));setTimeout(()=>{VISIT&&(VISIT.restoring=false)},400);return}
+  if(++n<80)setTimeout(tryIt,100);else VISIT.restoring=false};
+ setTimeout(tryIt,60)}
+window.addEventListener('hashchange',()=>{if(!/^#\/b\/[^/]+\/\d+/.test(location.hash)){savePos(true);VISIT=null}});
+window.addEventListener('scroll',()=>{if(!VISIT)return;savePos(false);checkEnd()},{passive:true});
+function checkEnd(){if(!VISIT||VISIT.restoring||VISIT.noAuto||VISIT.tab==='m')return;
+ const doc=document.getElementById('doc'),more=document.getElementById('docmore');if(!doc||(more&&more.innerHTML))return;
+ if(VISIT.dwell<10)return;
+ const last=doc.lastElementChild;const vh=window.innerHeight;
+ const atEnd=(last&&last.getBoundingClientRect().bottom<=vh+40)||((window.scrollY+vh)/Math.max(1,document.documentElement.scrollHeight)>=0.95&&document.documentElement.scrollHeight>vh*1.2);
+ if(!atEnd)return;const c=chget(VISIT.b,VISIT.ci);if(c.s===2){VISIT.noAuto=true;return}
+ AUTO_ST=true;try{setStatus(VISIT.b,VISIT.ci,2)}finally{AUTO_ST=false}VISIT.noAuto=true;
+ const pg=document.querySelector('.pager button.primary');if(pg&&/标为已读/.test(pg.textContent))pg.remove();
+ toast('读到章末，已自动标为「已读」')}
+
+const _viewChapter=viewChapter;
+viewChapter=async function(b,ci,tab,target,keep){
+ const r=await _viewChapter.apply(this,arguments);
+ if(keep)return r;
+ if(!(CUR.b===b&&CUR.ci===ci&&CUR.tab===tab)||!document.getElementById('seg'))return r;
+ const tok=RTOK;
+ VISIT={b,ci,tab,dwell:0,noAuto:false,restoring:false};
+ if(tab!=='m'){const c=chs(b,ci);
+  if(c.s===0){c.s=1;save('ch',CH);const seg=document.getElementById('seg');if(seg)seg.querySelectorAll('button').forEach((x,i)=>x.classList.toggle('on',i===1));const toc=document.getElementById('toc');if(toc)toc.innerHTML=tocHTML(b,ci)}
+  logOpen(b,ci);
+  if(target==null)restorePos(b,ci,tab,tok)}
+ return r};
+const _continueTarget=continueTarget;
+continueTarget=function(b){const t=_continueTarget(b);const m=/^#\/b\/([^/]+)\/(\d+)\//.exec(t);if(!m)return t;const ci=+m[2];const p=lastPos(b,ci);
+ if(!p)return t;if(typeof hasTab==='function'&&!hasTab(p.tab))return t;const c=chget(b,ci);if(p.tab==='o'&&c.bmt&&c.bmt>p.ts)return t;
+ return `#/b/${b}/${ci}/${p.tab}`};
+function hasTab(t){return t==='n'||(t==='o'&&BOOKS.some(b=>b.parts&&b.parts.length))}
+
+/* ---- 月度 ---- */
+function monthKey(ts){return dayKey(ts).slice(0,7)}
+function monthStats(mk){const days={};let sec=0;const per={};
+ const P=b=>per[b]||(per[b]={sec:0,ch:0,done:false});
+ Object.keys(LOG).forEach(k=>{const day=k.split('|')[0];if(day.slice(0,7)!==mk)return;const e=LOG[k];const d=days[day]||(days[day]={sec:0,ch:0,open:0});
+  Object.keys(e.sec||{}).forEach(b=>{if(!BYID[b])return;d.sec+=e.sec[b];sec+=e.sec[b];P(b).sec+=e.sec[b]});d.open+=(e.open||[]).length});
+ let chDone=0;Object.keys(CH).forEach(k=>{const c=CH[k];if(c.s!==2||!c.dt||monthKey(c.dt)!==mk)return;const [b]=k.split('|');if(!BYID[b])return;chDone++;P(b).ch++;const d=dayKey(c.dt);(days[d]||(days[d]={sec:0,ch:0,open:0})).ch++});
+ const books=[];BOOKS.forEach(bk=>{let all=true,mx=0;bk.chapters.forEach((_,ci)=>{const c=chget(bk.id,ci);if(c.s!==2)all=false;else mx=Math.max(mx,c.dt||0)});if(all&&mx&&monthKey(mx)===mk){books.push(bk.id);P(bk.id).done=true}});
+ const rdays=Object.keys(days).filter(d=>days[d].sec>0||days[d].ch>0||days[d].open>0).length;
+ return{days,sec,chDone,books,rdays,per}}
+function allMonths(){const s=new Set([monthKey()]);Object.keys(LOG).forEach(k=>s.add(k.slice(0,7)));Object.values(CH).forEach(c=>{if(c.dt)s.add(monthKey(c.dt))});return [...s].sort()}
+function shiftMonth(mk,d){let [y,m]=mk.split('-').map(Number);m+=d;while(m<1){m+=12;y--}while(m>12){m-=12;y++}return y+'-'+String(m).padStart(2,'0')}
+function mins(sec){return Math.round(sec/60)}
+function viewMonth(mk){if(!/^\d{4}-\d{2}$/.test(mk||''))mk=monthKey();const S=monthStats(mk);const [y,m]=mk.split('-').map(Number);const nd=new Date(y,m,0).getDate();
+ const mx=Math.max(1,...Object.values(S.days).map(d=>d.sec));const today=dayKey();
+ let bars='';for(let i=1;i<=nd;i++){const dk=mk+'-'+String(i).padStart(2,'0');const d=S.days[dk]||{sec:0,ch:0};const h=d.sec?Math.max(4,Math.round(d.sec/mx*100)):0;
+  bars+=`<div class="mbar${dk===today?' today':''}" title="${m}月${i}日：约 ${mins(d.sec)} 分钟${d.ch?`，读完 ${d.ch} 章`:''}"><div class="mcol"><div style="height:${h}%"></div></div>${d.ch?`<span class="mdot">${d.ch}</span>`:''}<span class="mlab">${i===1||i%5===0?i:''}</span></div>`}
+ const rows=BOOKS.filter(bk=>S.per[bk.id]).map(bk=>{const p=S.per[bk.id],st=bookStats(bk.id);return `<tr><td><a href="#/b/${bk.id}">《${esc(bk.title)}》</a>${p.done?' <span class="badge">本月读完</span>':''}</td><td>${p.ch}</td><td>${mins(p.sec)}</td><td>${st.read}/${st.total}</td></tr>`}).join('');
+ const months=allMonths();
+ app.innerHTML=`<div style="max-width:820px"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h1 style="margin:0;font-size:24px">月度阅读</h1>
+ <div class="row"><button class="small" onclick="go('#/month/${shiftMonth(mk,-1)}')">‹ 上月</button><select id="msel" style="width:auto" onchange="go('#/month/'+this.value)">${(months.includes(mk)?months:[...months,mk].sort()).map(x=>`<option value="${x}" ${x===mk?'selected':''}>${x.replace('-','年')}月</option>`).join('')}</select><button class="small" onclick="go('#/month/${shiftMonth(mk,1)}')">下月 ›</button></div></div>
+ <div class="mstats"><div class="card"><b>${S.chDone}</b><span>读完章节</span></div><div class="card"><b>${S.books.length}</b><span>读完的书</span></div><div class="card"><b>${S.rdays}</b><span>阅读天数</span></div><div class="card"><b>${mins(S.sec)}</b><span>阅读分钟（约）</span></div></div>
+ <div class="card" style="margin-top:14px"><h3 style="margin-top:0">每天阅读时长</h3><div class="mchart">${bars}</div><div class="small muted" style="margin-top:6px">柱高 = 当天阅读分钟（页面在前台、2 分钟内有操作才计时）；数字 = 当天读完的章节数</div></div>
+ <div class="card" style="margin-top:14px"><h3 style="margin-top:0">各书情况</h3>${rows?`<table class="mtab"><tr><th>书</th><th>本月读完章节</th><th>本月分钟</th><th>总进度</th></tr>${rows}</table>`:'<div class="muted small">这个月还没有阅读记录。</div>'}</div>
+ ${S.books.length?`<div class="notice" style="margin-top:14px">🎉 本月读完：${S.books.map(b=>'《'+esc(BYID[b].title)+'》').join('、')}</div>`:''}
+ <div class="small muted" style="margin-top:10px">记录${SY.token?'已随账号在各设备间同步':'只保存在本机（登录账号后可在手机和电脑间同步）'}。</div></div>`}
+const _viewShelf=viewShelf;
+viewShelf=function(){_viewShelf.apply(this,arguments);const S=monthStats(monthKey());const sh=app.querySelector('.shelf');if(!sh)return;
+ const d=document.createElement('div');d.className='card msum';d.style.marginBottom='14px';
+ d.innerHTML=`<div class="row" style="justify-content:space-between"><div>📅 <b>本月</b>：读了 ${S.rdays} 天 · 约 ${mins(S.sec)} 分钟 · 读完 ${S.chDone} 章${S.books.length?` · 读完 ${S.books.length} 本`:''}</div><div class="row"><span class="small muted">${SY.token?'☁️ 已同步：'+esc(SY.phone||''):'<a href="#/account">登录以同步</a>'}</span><button class="small" onclick="go('#/month')">月度统计 →</button></div></div>`;
+ sh.before(d)};
+
+/* ---- export / import extras ---- */
+function importExtra(d,mode){if(mode==='replace'){LOG=d.log||{};POS=d.pos||{}}
+ else{const L=d.log||{};Object.keys(L).forEach(k=>{const a=LOG[k],b=L[k];if(!a){LOG[k]=b;return}const sec=Object.assign({},a.sec||{});Object.keys(b.sec||{}).forEach(x=>sec[x]=Math.max(sec[x]||0,b.sec[x]));
+   LOG[k]={sec,open:[...new Set([...(a.open||[]),...(b.open||[])])],done:[...new Set([...(a.done||[]),...(b.done||[])])]}});
+  const Q=d.pos||{};Object.keys(Q).forEach(k=>{if(!POS[k]||(Q[k].ts||0)>(POS[k].ts||0))POS[k]=Q[k]})}
+ save('log',LOG);save('pos',POS)}
+
+/* ---- network ---- */
+const NAB=window.BorgesAndroid||null;const REQCB={};
+window.__androidReqDone=function(id,code,text,err){const f=REQCB[id];delete REQCB[id];f&&f(code,text,err)};
+function api(path,body,opt){opt=opt||{};const base=opt.base||syncApi();if(!base)return Promise.reject(new Error('还没有设置同步服务器'));
+ const url=base+path,method=body===undefined?'GET':'POST';const headers={'Content-Type':'application/json'};const tok=opt.token!==undefined?opt.token:SY.token;if(tok)headers.Authorization='Bearer '+tok;
+ const data=body===undefined?null:JSON.stringify(body);
+ const parse=(code,text)=>{let j=null;try{j=JSON.parse(text)}catch(e){}if(code>=200&&code<300&&j&&j.ok!==false)return j;const e=new Error((j&&j.error)||('服务器返回 '+code));e.status=code;e.code=j&&j.code;throw e};
+ if(NAB&&NAB.request&&!opt.keepalive)return new Promise((res,rej)=>{const id=uid();const tm=setTimeout(()=>{delete REQCB[id];rej(new Error('网络超时'))},30000);
+  REQCB[id]=(code,text,err)=>{clearTimeout(tm);if(err&&!code)return rej(new Error('网络不可用：'+err));try{res(parse(code,text))}catch(e){rej(e)}};
+  NAB.request(method,url,JSON.stringify(headers),data||'',id)});
+ const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),30000);
+ return fetch(url,{method,headers,body:data,keepalive:!!opt.keepalive,signal:opt.keepalive?undefined:ctl.signal}).then(async r=>{clearTimeout(tm);return parse(r.status,await r.text())},e=>{clearTimeout(tm);throw new Error('网络不可用')})}
+
+/* ---- sync ---- */
+let PUSH_T=null,SYNCING=null,SYNC_ERR='';
+function schedulePush(){if(!SY.token)return;clearTimeout(PUSH_T);PUSH_T=setTimeout(()=>syncNow(false),4000)}
+function dirtyItems(){const out=[];Object.keys(META.t).forEach(id=>{const t=META.t[id];if(META.p[id]===t)return;const [kind,k]=id.split('\u0001');if(!KINDS[kind])return;
+  if(t<0){out.push({kind,k,del:true,ts:-t});return}const v=SHADOW[kind].get(k);if(v===undefined)return;out.push({kind,k,v:JSON.parse(v),ts:t})});return out}
+function mergeCh(a,b){const r=Object.assign({},a,b);r.s=Math.max(a.s||0,b.s||0);const dts=[a.dt,b.dt].filter(Boolean);r.dt=r.s===2&&dts.length?Math.min(...dts):undefined;
+ if(a.refl&&b.refl&&a.refl!==b.refl)r.refl=a.refl.includes(b.refl)?a.refl:b.refl.includes(a.refl)?b.refl:a.refl+'\n\n'+b.refl;else r.refl=a.refl||b.refl||'';
+ const m=new Map();[...(a.notes||[]),...(b.notes||[])].forEach(n=>{const o=m.get(n.id);if(!o||(n.ut||n.ts)>(o.ut||o.ts))m.set(n.id,n)});r.notes=[...m.values()];
+ if(r.dt===undefined)delete r.dt;return r}
+function applyRemote(items){const touched=new Set();let conflictTs=Date.now();
+ items.forEach(it=>{const K=KINDS[it.kind];if(!K)return;const id=it.kind+'\u0001'+it.k;const lt=Math.abs(META.t[id]||0);
+  const dirty=META.t[id]!==undefined&&META.p[id]!==META.t[id];
+  /* chapter edited here AND elsewhere since the last sync: keep both (notes union, highest status) */
+  if(dirty&&!it.del&&it.kind==='ch'&&CH[it.k]&&it.ts!==lt){const cur=JSON.stringify(CH[it.k]);if(cur!==JSON.stringify(it.v)){const v=mergeCh(CH[it.k],it.v);CH[it.k]=v;SHADOW.ch.set(it.k,JSON.stringify(v));META.t[id]=Math.max(lt,it.ts)+1;touched.add('ch');return}}
+  if(dirty&&!it.del&&it.kind==='ui'&&it.v){const loc={last:UI.last||{},lastBook:UI.lastBook||null};const v={last:Object.assign({},it.v.last||{},loc.last),lastBook:loc.lastBook||it.v.lastBook||null};if(JSON.stringify(v)!==JSON.stringify(it.v)){setItem('ui','last',v);SHADOW.ui.set('last',JSON.stringify(v));META.t[id]=Math.max(lt,it.ts)+1;touched.add('ui');return}}
+  if(it.ts<lt)return;
+  if(it.ts===lt){if(!dirty)return;const cur=SHADOW[it.kind].get(it.k);if(it.del?cur===undefined:cur===JSON.stringify(it.v)){META.p[id]=META.t[id];return}}
+  let v=it.del?undefined:it.v;
+  if(dirty&&!it.del&&it.kind==='ch'&&CH[it.k]){v=mergeCh(CH[it.k],it.v)}
+  setItem(it.kind,it.k,v);touched.add(it.kind);
+  const js=v===undefined?undefined:JSON.stringify(v);
+  if(js===undefined)SHADOW[it.kind].delete(it.k);else SHADOW[it.kind].set(it.k,js);
+  if(dirty&&it.kind==='ch'&&!it.del&&js!==JSON.stringify(it.v)){META.t[id]=++conflictTs}  /* merged: upload the union */
+  else{META.t[id]=it.del?-it.ts:it.ts;META.p[id]=META.t[id]}});
+ touched.forEach(kind=>{const K=KINDS[kind];_rawSave(K.sk,kind==='ui'?UI:K.get())});saveMeta();return touched}
+function setItem(kind,k,v){if(kind==='ui'){if(v){UI.last=Object.assign({},v.last||{});if(v.lastBook)UI.lastBook=v.lastBook}return}
+ const K=KINDS[kind];if(K.type==='arr'){const a=K.get();const i=a.findIndex(x=>x.id===k);if(v===undefined){if(i>=0)a.splice(i,1)}else if(i>=0)a[i]=v;else a.push(v);return}
+ const o=K.get();if(v===undefined)delete o[k];else o[k]=v}
+async function syncNow(manual){if(!SY.token||!syncApi())return;if(SYNCING){if(manual)return SYNCING;return}
+ SYNCING=(async()=>{try{for(let round=0;round<20;round++){
+   if(dirtyItems().length){/* pull first so concurrent edits from other devices get merged, not overwritten */
+    const r0=await api('/api/sync',{since:SY.rev||0,items:[]});const t0=applyRemote(r0.items||[]);SY.rev=r0.rev;_rawSave('sync',SY);if(t0.size)afterRemote(t0);if(r0.more)continue}
+   const items=dirtyItems().slice(0,400);const sent=new Map(items.map(x=>[x.kind+'\u0001'+x.k,x.del?-x.ts:x.ts]));
+   const r=await api('/api/sync',{since:SY.rev||0,items});
+   sent.forEach((t,id)=>{if(META.t[id]===t)META.p[id]=t});
+   const touched=applyRemote(r.items||[]);SY.rev=r.rev;SY.last=Date.now();_rawSave('sync',SY);saveMeta();SYNC_ERR='';
+   if(touched.size)afterRemote(touched);
+   if(!r.more&&dirtyItems().length===0)break}
+  if(manual)toast('已同步');}
+ catch(e){SYNC_ERR=e.message;if(e.status===401&&e.code==='auth'){SY.token=null;_rawSave('sync',SY);toast('登录已失效，请重新登录')}else if(manual)toast('同步失败：'+e.message)}
+ finally{SYNCING=null;syncBadge();if(/^#\/account/.test(location.hash)&&!document.activeElement.matches('input,textarea'))viewAccount()}})();return SYNCING}
+function pushNow(keepalive){if(!SY.token||!syncApi())return;const items=dirtyItems().slice(0,400);if(!items.length)return;
+ if(keepalive&&!(NAB&&NAB.request)){api('/api/sync',{since:SY.rev||0,items},{keepalive:true}).then(r=>{items.forEach(x=>{const id=x.kind+'\u0001'+x.k;if(META.t[id]===(x.del?-x.ts:x.ts))META.p[id]=META.t[id]});saveMeta()}).catch(()=>{});return}
+ syncNow(false)}
+function afterRemote(touched){
+ const typing=document.activeElement&&document.activeElement.matches('input,textarea');
+ const h=location.hash||'#/';
+ if(/^#\/b\/[^/]+\/\d+/.test(h)){if(CUR&&CUR.b){const toc=document.getElementById('toc');if(toc)toc.innerHTML=tocHTML(CUR.b,CUR.ci);const c=chget(CUR.b,CUR.ci);const seg=document.getElementById('seg');if(seg)seg.querySelectorAll('button').forEach((x,i)=>x.classList.toggle('on',i===c.s))}return}
+ if(typing)return;if(/^#\/(account|data|ask|search)/.test(h))return;const y=window.scrollY;route();window.scrollTo(0,y)}
+setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)syncNow(false)},60000);
+window.addEventListener('online',()=>syncNow(false));
+window.addEventListener('storage',e=>{if(!e.key||!e.key.startsWith(P))return;const k=e.key.slice(P.length);
+ if(k==='log')LOG=load('log',{});if(k==='pos')POS=load('pos',{});if(k==='sync')SY=load('sync',{});if(k==='meta'){META=load('meta',{t:{},p:{}})}
+ if(SK2KIND[k])SHADOW[SK2KIND[k]]=snap(SK2KIND[k])});
+
+/* ---- account page ---- */
+function syncBadge(){const b=document.querySelector('#nav button[data-r=account]');if(!b)return;b.textContent=SY.token?(SYNC_ERR?'账号⚠':'账号☁'):'登录'}
+function viewAccount(){
+ const api0=syncApi();
+ if(!SY.token){app.innerHTML=`<div style="max-width:460px"><h1 style="margin:0 0 6px;font-size:24px">登录 / 注册</h1>
+ <div class="muted small" style="margin-bottom:12px">用手机号和密码登录后，阅读进度、标记、感悟、笔记、问答和阅读记录会在手机 App 和电脑浏览器之间自动同步。不用短信验证码。</div>
+ <div class="card"><label class="small">手机号</label><input id="lgphone" inputmode="tel" autocomplete="username" value="${esc(SY.lastPhone||'')}" placeholder="例如 13800000000">
+ <label class="small" style="display:block;margin-top:8px">密码</label><input id="lgpw" type="password" autocomplete="current-password" placeholder="至少 6 位" onkeydown="if(event.key==='Enter')doLogin('login')">
+ <div class="row" style="margin-top:12px"><button class="primary" id="lgbtn" onclick="doLogin('login')">登录</button><button onclick="doLogin('register')">注册新账号</button></div><div id="lgmsg" class="small" style="margin-top:8px"></div></div>
+ <details style="margin-top:14px"><summary class="small muted">同步服务器</summary><div class="card" style="margin-top:6px"><input id="lgapi" value="${esc(api0)}" placeholder="https://…"><div class="row" style="margin-top:6px"><button class="small" onclick="SY.api=document.getElementById('lgapi').value.trim();_rawSave('sync',SY);toast('已保存')">保存</button><button class="small" onclick="testApi()">测试连接</button></div></div></details>
+ <div class="small muted" style="margin-top:10px">不登录也能正常使用，所有记录保存在本机。</div></div>`;syncBadge();return}
+ const dn=dirtyItems().length;
+ app.innerHTML=`<div style="max-width:620px"><h1 style="margin:0 0 12px;font-size:24px">我的账号</h1>
+ <div class="card"><div>手机号：<b>${esc(SY.phone)}</b> ${SY.role==='admin'?'<span class="badge">管理员</span>':''}</div>
+ <div class="small muted" style="margin-top:6px">上次同步：${SY.last?fmt(SY.last):'还没有'}${dn?` · 待上传 ${dn} 条`:''}${SYNC_ERR?` · <span style="color:var(--danger,#c33)">${esc(SYNC_ERR)}</span>`:''}</div>
+ <div class="row" style="margin-top:10px"><button class="primary" onclick="syncNow(true)">立即同步</button><button onclick="pwForm()">修改密码</button><button class="danger" onclick="doLogout()">退出登录</button></div>
+ <div class="small muted" style="margin-top:8px">打开时、每分钟、改动后几秒会自动同步；离线时照常使用，联网后自动补传。提问用的 Webhook 设置只留在本机，不同步。</div></div>
+ <div id="pwbox"></div>
+ ${SY.role==='admin'?`<div class="card" style="margin-top:14px"><h3 style="margin-top:0">用户管理</h3><div id="ulist">${loadingHTML('载入用户…')}</div></div>`:''}
+ <details style="margin-top:14px"><summary class="small muted">同步服务器</summary><div class="small muted" style="margin-top:6px">${esc(api0)}</div></details></div>`;
+ syncBadge();if(SY.role==='admin')loadUsers()}
+async function testApi(){const b=document.getElementById('lgapi').value.trim().replace(/\/+$/,'');try{await api('/api/health',undefined,{base:b,token:''});toast('连接正常')}catch(e){toast('连接失败：'+e.message)}}
+async function doLogin(mode){const phone=document.getElementById('lgphone').value.trim(),pw=document.getElementById('lgpw').value;const msg=document.getElementById('lgmsg');
+ const ai=document.getElementById('lgapi');if(ai&&ai.value.trim()&&ai.value.trim()!==syncApi()){SY.api=ai.value.trim()}
+ if(!phone||!pw){msg.textContent='请填写手机号和密码';return}if(!syncApi()){msg.textContent='还没有设置同步服务器（展开下方「同步服务器」填写）';return}
+ msg.textContent=mode==='login'?'正在登录…':'正在注册…';
+ try{const r=await api('/api/'+mode,{phone,password:pw},{token:''});
+  const hasLocal=Object.keys(CH).length||HL.length||QA.length;
+  if(SY.lastPhone&&SY.lastPhone!==r.user.phone&&hasLocal&&!confirm(`本机现有的记录属于上一个账号（${SY.lastPhone}）。\n确定：合并到 ${r.user.phone}\n取消：先清空本机记录再登录`)){CH={};HL=[];QA=[];LOG={};POS={};saveAll();save('log',LOG);save('pos',POS);META={t:{},p:{}};Object.keys(KINDS).forEach(k=>SHADOW[k]=snap(k));saveMeta()}
+  SY.token=r.token;SY.phone=r.user.phone;SY.role=r.user.role;SY.lastPhone=r.user.phone;SY.rev=0;META.p={};_rawSave('sync',SY);saveMeta();
+  toast(mode==='login'?'登录成功，正在同步…':'注册成功，正在同步…');viewAccount();await syncNow(false);toast(SYNC_ERR?'同步失败：'+SYNC_ERR:'同步完成')}
+ catch(e){msg.textContent=(mode==='login'?'登录失败：':'注册失败：')+e.message}}
+async function doLogout(){if(!confirm('退出登录？本机的记录会保留，但不再同步。'))return;await syncNow(false).catch(()=>{});try{await api('/api/logout',{})}catch(e){}
+ SY.token=null;SY.rev=0;_rawSave('sync',SY);META.p={};saveMeta();toast('已退出登录');viewAccount()}
+function pwForm(){document.getElementById('pwbox').innerHTML=`<div class="card" style="margin-top:14px"><h3 style="margin-top:0">修改密码</h3><input id="pwold" type="password" placeholder="原密码" autocomplete="current-password"><input id="pwnew" type="password" placeholder="新密码（至少 6 位）" style="margin-top:6px" autocomplete="new-password"><input id="pwnew2" type="password" placeholder="再输一次新密码" style="margin-top:6px" autocomplete="new-password"><div class="row" style="margin-top:8px"><button class="primary" onclick="doPw()">保存新密码</button></div><div id="pwmsg" class="small"></div></div>`}
+async function doPw(){const o=document.getElementById('pwold').value,n=document.getElementById('pwnew').value,n2=document.getElementById('pwnew2').value,m=document.getElementById('pwmsg');
+ if(n!==n2){m.textContent='两次输入的新密码不一样';return}try{await api('/api/password',{old:o,password:n});toast('密码已修改（其他设备需要重新登录）');document.getElementById('pwbox').innerHTML=''}catch(e){m.textContent='修改失败：'+e.message}}
+async function loadUsers(){const el=document.getElementById('ulist');if(!el)return;try{const r=await api('/api/admin/users');
+ el.innerHTML=`<table class="mtab"><tr><th>手机号</th><th>角色</th><th>记录</th><th>最近同步</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.phone)}${u.disabled?' <span class="badge warn">已停用</span>':''}</td><td>${u.role==='admin'?'管理员':'用户'}</td><td>${u.items}</td><td class="small">${u.last_seen?fmt(u.last_seen):'—'}</td><td><button class="small" onclick="adminReset('${esc(u.phone)}')">重置密码</button>${u.phone!==SY.phone?`<button class="small" onclick="adminDisable('${esc(u.phone)}',${u.disabled?0:1})">${u.disabled?'启用':'停用'}</button>`:''}</td></tr>`).join('')}</table>`}catch(e){el.innerHTML=errorHTML(e)}}
+async function adminReset(phone){const p=prompt('给 '+phone+' 设置新密码（至少 6 位）：');if(!p)return;try{await api('/api/admin/reset',{phone,password:p});toast('已重置')}catch(e){toast('失败：'+e.message)}}
+async function adminDisable(phone,d){if(!confirm((d?'停用 ':'启用 ')+phone+'？'))return;try{await api('/api/admin/disable',{phone,disabled:!!d});loadUsers()}catch(e){toast('失败：'+e.message)}}
+
+/* start */
+setTimeout(syncBadge,0);
+if(SY.token)setTimeout(()=>syncNow(false),300);
+
+/*/ADDON-JS*/
 route();
 </script>
 </body>
